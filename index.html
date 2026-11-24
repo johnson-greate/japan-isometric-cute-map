@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>日本地理立體可愛地圖 · 大一互動地理圖鑑</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 頂部可愛導覽列 -->
+  <header class="top-bar">
+    <div class="brand-card">
+      <div class="brand-badge" aria-hidden="true">🗻</div>
+      <div class="brand-text">
+        <h1>日本地理・立體可愛地圖</h1>
+        <p class="brand-sub">大一日本地理互動圖鑑 · 全47都道府縣（1都1道2府43縣）· 官方最新數據</p>
+      </div>
+    </div>
+
+    <!-- 三種立體視圖切換 -->
+    <nav class="mode-switcher" aria-label="地圖視圖模式">
+      <button class="mode-btn active" data-mode="diorama" title="可愛立體八大地方分區圖">
+        <span class="btn-icon">🎨</span>
+        <span>立體分區圖</span>
+      </button>
+      <button class="mode-btn" data-mode="population" title="依總務省人口推計高度立體凸起">
+        <span class="btn-icon">👥</span>
+        <span>人口 3D 圖</span>
+      </button>
+      <button class="mode-btn" data-mode="gdp" title="依內閣府縣內總生產GDP高度立體凸起">
+        <span class="btn-icon">💴</span>
+        <span>GDP 3D 圖</span>
+      </button>
+    </nav>
+
+    <!-- 右側功能按鈕 -->
+    <div class="top-actions">
+      <button id="btnQuiz" class="action-btn quiz-btn">
+        <span>🎯</span>
+        <span>隨堂小測驗</span>
+      </button>
+      <button id="btnDirectory" class="action-btn dir-btn">
+        <span>📚</span>
+        <span>47都道府縣表</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主體工作區 -->
+  <main class="stage-wrapper">
+    <!-- 左側浮動篩選與圖層控制面板 -->
+    <aside class="left-panel" aria-label="地方分區篩選與地圖圖層">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🧭 八大地方分區</span>
+          <span class="mini-count" id="regionCountBadge">47區</span>
+        </div>
+        <div class="region-list" id="regionList"></div>
+        <div class="region-summary hidden" id="regionSummary"></div>
+      </div>
+
+      <div class="panel-card layers-card">
+        <div class="panel-title">
+          <span>✨ 可愛圖層開關</span>
+        </div>
+        <label class="cute-toggle">
+          <input type="checkbox" id="togglePins" checked />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label">📌 顯示縣廳圖釘</span>
+        </label>
+        <label class="cute-toggle">
+          <input type="checkbox" id="toggleLabels" checked />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label">🏷️ 顯示都道府縣名</span>
+        </label>
+        <label class="cute-toggle">
+          <input type="checkbox" id="toggleFossa" />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label">🌋 東西地質線 (大地溝帶)</span>
+        </label>
+        <label class="cute-toggle">
+          <input type="checkbox" id="toggleBelt" />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label">🚅 太平洋工業帶</span>
+        </label>
+        <label class="cute-toggle">
+          <input type="checkbox" id="toggleDecor" checked />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label">🌸 可愛插畫裝飾</span>
+        </label>
+      </div>
+
+      <!-- 動態圖例（在人口 / GDP 3D 模式顯示） -->
+      <div class="panel-card legend-card hidden" id="legendCard">
+        <div class="panel-title" id="legendTitle">圖例說明</div>
+        <div class="legend-bar" id="legendBar"></div>
+        <div class="legend-ticks" id="legendTicks"></div>
+        <p class="legend-note" id="legendNote"></p>
+      </div>
+    </aside>
+
+    <!-- 中央互動 Isometric 2.5D 日本地圖畫布 -->
+    <section class="map-viewport" id="mapViewport" aria-label="日本立體互動地圖">
+      <svg id="japanMapSvg" viewBox="0 0 1200 820" preserveAspectRatio="xMidYMid meet" role="img" aria-label="日本47都道府縣等軸測立體可愛地圖">
+        <defs>
+          <!-- 晴朗日本海與太平洋粉彩漸層 -->
+          <linearGradient id="oceanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E7F6FF" />
+            <stop offset="52%" stop-color="#D1EEFF" />
+            <stop offset="100%" stop-color="#BBE4FC" />
+          </linearGradient>
+
+          <!-- 等軸測海洋菱格紋 -->
+          <pattern id="isoGridPattern" width="60" height="34.64" patternUnits="userSpaceOnUse">
+            <path d="M 30 0 L 60 17.32 L 30 34.64 L 0 17.32 Z" fill="none" stroke="#9BD7F5" stroke-width="0.7" stroke-opacity="0.45" />
+          </pattern>
+
+          <!-- 浮島投影濾鏡 -->
+          <filter id="islandShadow" x="-15%" y="-15%" width="130%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="11" />
+            <feOffset dx="0" dy="16" result="offsetblur" />
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.22" />
+            </feComponentTransfer>
+            <feMerge>
+              <feMergeNode />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          <!-- 浮起積木陰影 -->
+          <filter id="elevatedShadow" x="-25%" y="-25%" width="150%" height="160%">
+            <feDropShadow dx="0" dy="14" stdDeviation="6" flood-color="#5D493F" flood-opacity="0.28" />
+          </filter>
+
+          <!-- 可愛圖釘球面高光 -->
+          <radialGradient id="pinGloss" cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.88" />
+            <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.12" />
+            <stop offset="100%" stop-color="#000000" stop-opacity="0.18" />
+          </radialGradient>
+
+          <!-- 插圖框陰影 -->
+          <filter id="softBoxShadow" x="-10%" y="-10%" width="125%" height="130%">
+            <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#6B8E9F" flood-opacity="0.22" />
+          </filter>
+        </defs>
+
+        <!-- 背景海洋層 -->
+        <rect x="-600" y="-400" width="2400" height="1640" fill="url(#oceanGrad)" />
+        <rect x="-600" y="-400" width="2400" height="1640" fill="url(#isoGridPattern)" />
+
+        <!-- 可平移縮放的主場景 -->
+        <g id="mapScene">
+          <!-- 海洋波浪、櫻花雲朵、帆船與海域標註 -->
+          <g id="layerOceanDecor"></g>
+          <!-- 沖繩諸島等軸測插圖木框底板（讓沖繩3D積木坐落其上並支援完整互動！） -->
+          <g id="layerOkinawaFrame" filter="url(#softBoxShadow)"></g>
+          <!-- 日本列島底層浮島投影 -->
+          <g id="layerBaseShadow"></g>
+          <!-- 3D 立體側壁與47都道府縣表面 -->
+          <g id="layerMapBody"></g>
+          <!-- 選取／懸停浮起積木 -->
+          <g id="layerElevated"></g>
+          <!-- 可愛手繪日本地標（富士山、鳥居、雪人、溫泉等） -->
+          <g id="layerLandmarks"></g>
+          <!-- 都道府縣名可愛貼紙標籤 -->
+          <g id="layerLabels"></g>
+          <!-- 47個縣廳所在地立體可愛圖釘 -->
+          <g id="layerPins"></g>
+          <!-- 關東／關西／四國高密度區海上快捷標籤 -->
+          <g id="layerCallouts"></g>
+          <!-- 太平洋工業帶圖層 -->
+          <g id="layerBelt" class="hidden"></g>
+          <!-- 糸魚川—靜岡構造線（東西日本地質界線） -->
+          <g id="layerFossa" class="hidden"></g>
+          <!-- 可愛等軸測指南針 -->
+          <g id="layerCompass"></g>
+        </g>
+      </svg>
+
+      <!-- 地圖底部快捷操作列 -->
+      <div class="map-controls">
+        <div class="zoom-group">
+          <button id="btnZoomIn" class="ctrl-btn" title="放大地圖">＋</button>
+          <button id="btnZoomOut" class="ctrl-btn" title="縮小地圖">－</button>
+          <button id="btnZoomReset" class="ctrl-btn reset-btn" title="重置視角">⟲ 重置</button>
+        </div>
+        <button id="btnRandom" class="ctrl-btn random-btn" title="隨機探索一個都道府縣">
+          🎲 隨機探索
+        </button>
+      </div>
+
+      <!-- 底部官方數據備註條 -->
+      <div class="source-pill">
+        📊 數據來源：日本總務省統計局「人口推計」(2024.10) · 內閣府「縣民經濟計算」最新確報
+      </div>
+
+      <!-- 隨堂小測驗浮動 HUD -->
+      <div class="quiz-hud hidden" id="quizHud" role="dialog" aria-label="大一日本地理隨堂小測驗">
+        <div class="quiz-header">
+          <div class="quiz-title-wrap">
+            <span class="quiz-badge">🎯 日本地理隨堂小測驗</span>
+            <span class="quiz-progress" id="quizProgress">第 1 / 10 題</span>
+          </div>
+          <div class="quiz-stats">
+            <span class="quiz-score" id="quizScore">得分：0</span>
+            <span class="quiz-streak" id="quizStreak">🔥 0連擊</span>
+            <button id="btnCloseQuiz" class="quiz-close" title="離開測驗">✕</button>
+          </div>
+        </div>
+        <div class="quiz-mode-tabs" id="quizModeTabs">
+          <button class="qtab active" data-qtype="mixed">🌟 綜合題</button>
+          <button class="qtab" data-qtype="capital">📍 異名縣廳</button>
+          <button class="qtab" data-qtype="region">🧭 地方分區</button>
+          <button class="qtab" data-qtype="locate">🗺️ 地圖點選</button>
+        </div>
+        <div class="quiz-body" id="quizBody"></div>
+      </div>
+    </section>
+
+    <!-- 右側浮動：都道府縣詳細學習卡片 -->
+    <aside class="right-panel" id="detailPanel" aria-label="都道府縣地理詳情">
+      <div class="detail-card" id="detailCard"></div>
+    </aside>
+  </main>
+
+  <!-- 滑鼠懸停迷你貼紙提示卡 -->
+  <div id="mapTooltip" class="map-tooltip hidden" role="tooltip"></div>
+
+  <!-- 47都道府縣速查與排行榜抽屜面板 -->
+  <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
+  <aside class="directory-drawer hidden" id="directoryDrawer" aria-label="47都道府縣速查表">
+    <div class="drawer-header">
+      <div>
+        <h2>📚 日本47都道府縣速查表</h2>
+        <p class="drawer-sub">支援搜尋正名、縣廳、舊國名（如：武藏、尾張）或分區，點擊即時定位！</p>
+      </div>
+      <button id="btnCloseDrawer" class="close-circle" aria-label="關閉">✕</button>
+    </div>
+
+    <div class="drawer-toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="dirSearch" placeholder="搜尋都道府縣、縣廳（如：札幌、金澤）或舊國名…" autocomplete="off" />
+      </div>
+      <div class="sort-pills">
+        <button class="sort-pill active" data-sort="gdp">💴 GDP排序</button>
+        <button class="sort-pill" data-sort="population">👥 人口排序</button>
+        <button class="sort-pill" data-sort="code">🧭 由北至南</button>
+      </div>
+    </div>
+
+    <div class="drawer-list" id="dirList"></div>
+  </aside>
+
+  <script src="data/japan-geo.js"></script>
+  <script src="data/prefectures.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
