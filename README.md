@@ -15,7 +15,7 @@
 ## 🌐 線上瀏覽
 
 啟用 GitHub Pages 後即可直接線上體驗：  
-👉 https://johnsontamiwt.github.io/japan-isometric-cute-map/
+👉 https://johnson-greate.github.io/japan-isometric-cute-map/
 
 ## 🚀 本地啟動方式
 
